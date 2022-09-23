@@ -23,19 +23,19 @@ jobs:
         env:
           GOOS: windows
           GOARCH: amd64
-        run: go build -o main/smbrsync.exe
+        run: go build -o dist/smbrsync.exe
       - name: Build for Linux
         env:
           GOOS: linux
           GOARCH: amd64
-        run: go build -o main/smbrsync
+        run: go build -o dist/smbrsync
       - name: Build for MacOS
         env:
           GOOS: darwin
           GOARCH: amd64
-        run: go build -o main/smbrsync
+        run: go build -o dist/smbrsync
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
           name: release-artifacts
-          path: main/
+          path: dist/
