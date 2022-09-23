@@ -56,6 +56,16 @@ func reco_sync(srconn *smb2.Share, dsconn *smb2.Share, srpath string, dspath str
 		panic(err)
 	}
 
+	// contents of destination as map of item names
+	tmp, err := dsconn.ReadDir(dcur_path)
+	if err != nil {
+		panic(err)
+	}
+	lsd := make(map[string]fs.FileInfo, 0)
+	for _, item := range tmp {
+		lsd[item.Name()] = item
+	}
+
 	for _, item := range lss {
 		if item.Mode().IsRegular() {
 			dfile, err := dsconn.Stat(build_path(dcur_path, item.Name()))
@@ -72,16 +82,29 @@ func reco_sync(srconn *smb2.Share, dsconn *smb2.Share, srpath string, dspath str
 				dsconn.Chtimes(build_path(dcur_path, item.Name()), item.ModTime(), item.ModTime())
 			}
 		} else if item.Mode().IsDir() {
-			_, err := dsconn.Stat(build_path(dcur_path, item.Name()))
-			if err != nil && !strings.Contains(err.Error(), "does not exist") {
-				panic(err)
+			if _, found := lsd[item.Name()]; !found {
+				// not found, add file
+				err := dsconn.Mkdir(build_path(dcur_path, item.Name()), item.Mode())
+				if err != nil {
+					panic(err)
+				}
+			} else if !lsd[item.Name()].IsDir() {
+				// not a directory, make it one
+				err := dsconn.Remove(item.Name())
+				if err != nil {
+					panic(err)
+				}
+
+				err = dsconn.Mkdir(build_path(dcur_path, item.Name()), item.Mode())
+				if err != nil {
+					panic(err)
+				}
 			}
 
-			if err != nil && strings.Contains(err.Error(), "does not exist") {
-				dsconn.Mkdir(build_path(dcur_path, item.Name()), item.Mode())
-			}
 			reco_sync(srconn, dsconn, srpath, dspath, build_path(subpath, item.Name()))
 		}
+		// remove item from destination item map
+		delete(lsd, item.Name())
 	}
 }
 
