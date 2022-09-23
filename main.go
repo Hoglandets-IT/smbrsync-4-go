@@ -56,36 +56,76 @@ func reco_sync(srconn *smb2.Share, dsconn *smb2.Share, srpath string, dspath str
 		panic(err)
 	}
 
-	for _, v := range lss {
-		if v.IsDir() == false {
-			sfile, err := srconn.Stat(build_path(scur_path, v.Name()))
-			if err != nil {
-				panic(err)
-			}
+	// contents of destination as map of item names
+	tmp, err := dsconn.ReadDir(dcur_path)
+	if err != nil {
+		panic(err)
+	}
+	lsd := make(map[string]fs.FileInfo, 0)
+	for _, item := range tmp {
+		lsd[item.Name()] = item
+	}
 
-			dfile, err := dsconn.Stat(build_path(dcur_path, v.Name()))
-			if err != nil && strings.Contains(err.Error(), "does not exist") != true {
-				panic(err)
-			}
-			if files_differ(sfile, dfile) {
-				fmt.Println("Files differ ", build_path(scur_path, v.Name()))
-				srcont, err := srconn.ReadFile(build_path(scur_path, v.Name()))
+	for _, item := range lss {
+		sItemPath := build_path(scur_path, item.Name())
+		dItemPath := build_path(dcur_path, item.Name())
+
+		if item.Mode().IsRegular() {
+			// source is regular file
+			if _, found := lsd[item.Name()]; found && !lsd[item.Name()].Mode().IsRegular() {
+				// destination exists but is not a file
+				err := dsconn.RemoveAll(dItemPath)
 				if err != nil {
 					panic(err)
 				}
-				dsconn.WriteFile(build_path(dcur_path, v.Name()), srcont, sfile.Mode())
-				dsconn.Chtimes(build_path(dcur_path, v.Name()), sfile.ModTime(), sfile.ModTime())
-			}
-		} else {
-			_, err := dsconn.Stat(build_path(dcur_path, v.Name()))
-			if err != nil && strings.Contains(err.Error(), "does not exist") != true {
-				panic(err)
+				// remove from destination item map for next step of check
+				delete(lsd, item.Name())
 			}
 
-			if err != nil && strings.Contains(err.Error(), "does not exist") {
-				dsconn.Mkdir(build_path(dcur_path, v.Name()), v.Mode())
+			if _, found := lsd[item.Name()]; !found || files_differ(item, lsd[item.Name()]) {
+				// destination does not exist of file differ
+				fmt.Println("Files differ ", sItemPath)
+				srcont, err := srconn.ReadFile(sItemPath)
+				if err != nil {
+					panic(err)
+				}
+
+				dsconn.WriteFile(dItemPath, srcont, item.Mode())
+				dsconn.Chtimes(dItemPath, item.ModTime(), item.ModTime())
 			}
-			reco_sync(srconn, dsconn, srpath, dspath, build_path(subpath, v.Name()))
+		} else if item.Mode().IsDir() {
+			// source is directory
+			if _, found := lsd[item.Name()]; !found {
+				// not found, add directory
+				err := dsconn.Mkdir(dItemPath, item.Mode())
+				if err != nil {
+					panic(err)
+				}
+			} else if !lsd[item.Name()].Mode().IsDir() {
+				// not a directory, make it one
+				err := dsconn.Remove(dItemPath)
+				if err != nil {
+					panic(err)
+				}
+
+				err = dsconn.Mkdir(dItemPath, item.Mode())
+				if err != nil {
+					panic(err)
+				}
+			}
+
+			reco_sync(srconn, dsconn, srpath, dspath, build_path(subpath, item.Name()))
+		}
+		// remove item from destination item map
+		delete(lsd, item.Name())
+	}
+
+	// anything left in the destination item map should be removed
+	for _, item := range lsd {
+		dItemPath := build_path(dcur_path, item.Name())
+		err := dsconn.RemoveAll(dItemPath)
+		if err != nil {
+			panic(err)
 		}
 	}
 }
@@ -141,7 +181,7 @@ func main() {
 	sdir := "rsync_src"
 	ddir := "rsync_dst"
 
-	fmt.Println("Servers connected, starting synchronization at ", time.Now().Sub(start).Seconds(), " sec after start")
+	fmt.Println("Servers connected, starting synchronization at ", time.Since(start).Seconds(), " sec after start")
 
 	reco_sync(srcsh, dstsh, sdir, ddir, "")
 	defer println("Finished processing")
