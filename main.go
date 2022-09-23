@@ -109,6 +109,15 @@ func reco_sync(srconn *smb2.Share, dsconn *smb2.Share, srpath string, dspath str
 		// remove item from destination item map
 		delete(lsd, item.Name())
 	}
+
+	// anything left in the destination item map should be removed
+	for _, item := range lsd {
+		dItemPath := build_path(dcur_path, item.Name())
+		err := dsconn.Remove(dItemPath)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 func main() {
