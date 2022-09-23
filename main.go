@@ -57,7 +57,7 @@ func reco_sync(srconn *smb2.Share, dsconn *smb2.Share, srpath string, dspath str
 	}
 
 	for _, v := range lss {
-		if !v.isDir() {
+		if v.Mode().IsRegular() {
 			sfile, err := srconn.Stat(build_path(scur_path, v.Name()))
 			if err != nil {
 				panic(err)
@@ -76,7 +76,7 @@ func reco_sync(srconn *smb2.Share, dsconn *smb2.Share, srpath string, dspath str
 				dsconn.WriteFile(build_path(dcur_path, v.Name()), srcont, sfile.Mode())
 				dsconn.Chtimes(build_path(dcur_path, v.Name()), sfile.ModTime(), sfile.ModTime())
 			}
-		} else {
+		} else if v.Mode().IsDir() {
 			_, err := dsconn.Stat(build_path(dcur_path, v.Name()))
 			if err != nil && !strings.Contains(err.Error(), "does not exist") {
 				panic(err)
