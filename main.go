@@ -56,36 +56,36 @@ func reco_sync(srconn *smb2.Share, dsconn *smb2.Share, srpath string, dspath str
 		panic(err)
 	}
 
-	for _, v := range lss {
-		if v.Mode().IsRegular() {
-			sfile, err := srconn.Stat(build_path(scur_path, v.Name()))
+	for _, item := range lss {
+		if item.Mode().IsRegular() {
+			sfile, err := srconn.Stat(build_path(scur_path, item.Name()))
 			if err != nil {
 				panic(err)
 			}
 
-			dfile, err := dsconn.Stat(build_path(dcur_path, v.Name()))
+			dfile, err := dsconn.Stat(build_path(dcur_path, item.Name()))
 			if err != nil && !strings.Contains(err.Error(), "does not exist") {
 				panic(err)
 			}
 			if files_differ(sfile, dfile) {
-				fmt.Println("Files differ ", build_path(scur_path, v.Name()))
-				srcont, err := srconn.ReadFile(build_path(scur_path, v.Name()))
+				fmt.Println("Files differ ", build_path(scur_path, item.Name()))
+				srcont, err := srconn.ReadFile(build_path(scur_path, item.Name()))
 				if err != nil {
 					panic(err)
 				}
-				dsconn.WriteFile(build_path(dcur_path, v.Name()), srcont, sfile.Mode())
-				dsconn.Chtimes(build_path(dcur_path, v.Name()), sfile.ModTime(), sfile.ModTime())
+				dsconn.WriteFile(build_path(dcur_path, item.Name()), srcont, sfile.Mode())
+				dsconn.Chtimes(build_path(dcur_path, item.Name()), sfile.ModTime(), sfile.ModTime())
 			}
-		} else if v.Mode().IsDir() {
-			_, err := dsconn.Stat(build_path(dcur_path, v.Name()))
+		} else if item.Mode().IsDir() {
+			_, err := dsconn.Stat(build_path(dcur_path, item.Name()))
 			if err != nil && !strings.Contains(err.Error(), "does not exist") {
 				panic(err)
 			}
 
 			if err != nil && strings.Contains(err.Error(), "does not exist") {
-				dsconn.Mkdir(build_path(dcur_path, v.Name()), v.Mode())
+				dsconn.Mkdir(build_path(dcur_path, item.Name()), item.Mode())
 			}
-			reco_sync(srconn, dsconn, srpath, dspath, build_path(subpath, v.Name()))
+			reco_sync(srconn, dsconn, srpath, dspath, build_path(subpath, item.Name()))
 		}
 	}
 }
