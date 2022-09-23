@@ -1,0 +1,7 @@
+image: gitpod/workspace-full
+checkoutLocation: "go/src/hoglandet.se/smbrsync"
+workspaceLocation: "go/src/hoglandet.se/smbrsync"
+vscode:
+  extensions:
+    - golang.go
+    - neonxp.gotools
