@@ -67,35 +67,38 @@ func reco_sync(srconn *smb2.Share, dsconn *smb2.Share, srpath string, dspath str
 	}
 
 	for _, item := range lss {
+		sItemPath := build_path(scur_path, item.Name())
+		dItemPath := build_path(dcur_path, item.Name())
 		if item.Mode().IsRegular() {
-			dfile, err := dsconn.Stat(build_path(dcur_path, item.Name()))
+			dfile, err := dsconn.Stat(dItemPath)
 			if err != nil && !strings.Contains(err.Error(), "does not exist") {
 				panic(err)
 			}
 			if files_differ(item, dfile) {
-				fmt.Println("Files differ ", build_path(scur_path, item.Name()))
-				srcont, err := srconn.ReadFile(build_path(scur_path, item.Name()))
+				fmt.Println("Files differ ", sItemPath)
+				srcont, err := srconn.ReadFile(sItemPath)
 				if err != nil {
 					panic(err)
 				}
-				dsconn.WriteFile(build_path(dcur_path, item.Name()), srcont, item.Mode())
-				dsconn.Chtimes(build_path(dcur_path, item.Name()), item.ModTime(), item.ModTime())
+				dsconn.WriteFile(dItemPath, srcont, item.Mode())
+				dsconn.Chtimes(dItemPath, item.ModTime(), item.ModTime())
 			}
 		} else if item.Mode().IsDir() {
+			// directory
 			if _, found := lsd[item.Name()]; !found {
 				// not found, add file
-				err := dsconn.Mkdir(build_path(dcur_path, item.Name()), item.Mode())
+				err := dsconn.Mkdir(dItemPath, item.Mode())
 				if err != nil {
 					panic(err)
 				}
 			} else if !lsd[item.Name()].IsDir() {
 				// not a directory, make it one
-				err := dsconn.Remove(item.Name())
+				err := dsconn.Remove(dItemPath)
 				if err != nil {
 					panic(err)
 				}
 
-				err = dsconn.Mkdir(build_path(dcur_path, item.Name()), item.Mode())
+				err = dsconn.Mkdir(dItemPath, item.Mode())
 				if err != nil {
 					panic(err)
 				}
