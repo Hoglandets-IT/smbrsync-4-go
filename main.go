@@ -58,23 +58,18 @@ func reco_sync(srconn *smb2.Share, dsconn *smb2.Share, srpath string, dspath str
 
 	for _, item := range lss {
 		if item.Mode().IsRegular() {
-			sfile, err := srconn.Stat(build_path(scur_path, item.Name()))
-			if err != nil {
-				panic(err)
-			}
-
 			dfile, err := dsconn.Stat(build_path(dcur_path, item.Name()))
 			if err != nil && !strings.Contains(err.Error(), "does not exist") {
 				panic(err)
 			}
-			if files_differ(sfile, dfile) {
+			if files_differ(item, dfile) {
 				fmt.Println("Files differ ", build_path(scur_path, item.Name()))
 				srcont, err := srconn.ReadFile(build_path(scur_path, item.Name()))
 				if err != nil {
 					panic(err)
 				}
-				dsconn.WriteFile(build_path(dcur_path, item.Name()), srcont, sfile.Mode())
-				dsconn.Chtimes(build_path(dcur_path, item.Name()), sfile.ModTime(), sfile.ModTime())
+				dsconn.WriteFile(build_path(dcur_path, item.Name()), srcont, item.Mode())
+				dsconn.Chtimes(build_path(dcur_path, item.Name()), item.ModTime(), item.ModTime())
 			}
 		} else if item.Mode().IsDir() {
 			_, err := dsconn.Stat(build_path(dcur_path, item.Name()))
