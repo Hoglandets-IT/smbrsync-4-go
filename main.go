@@ -57,14 +57,14 @@ func reco_sync(srconn *smb2.Share, dsconn *smb2.Share, srpath string, dspath str
 	}
 
 	for _, v := range lss {
-		if v.IsDir() == false {
+		if !v.isDir() {
 			sfile, err := srconn.Stat(build_path(scur_path, v.Name()))
 			if err != nil {
 				panic(err)
 			}
 
 			dfile, err := dsconn.Stat(build_path(dcur_path, v.Name()))
-			if err != nil && strings.Contains(err.Error(), "does not exist") != true {
+			if err != nil && !strings.Contains(err.Error(), "does not exist") {
 				panic(err)
 			}
 			if files_differ(sfile, dfile) {
@@ -78,7 +78,7 @@ func reco_sync(srconn *smb2.Share, dsconn *smb2.Share, srpath string, dspath str
 			}
 		} else {
 			_, err := dsconn.Stat(build_path(dcur_path, v.Name()))
-			if err != nil && strings.Contains(err.Error(), "does not exist") != true {
+			if err != nil && !strings.Contains(err.Error(), "does not exist") {
 				panic(err)
 			}
 
@@ -141,7 +141,7 @@ func main() {
 	sdir := "rsync_src"
 	ddir := "rsync_dst"
 
-	fmt.Println("Servers connected, starting synchronization at ", time.Now().Sub(start).Seconds(), " sec after start")
+	fmt.Println("Servers connected, starting synchronization at ", time.Since(start).Seconds(), " sec after start")
 
 	reco_sync(srcsh, dstsh, sdir, ddir, "")
 	defer println("Finished processing")
