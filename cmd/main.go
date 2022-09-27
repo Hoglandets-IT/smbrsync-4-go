@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/Hoglandets-IT/smbrsync-4-go/tree/module/smbrsync"
+	"github.com/Hoglandets-IT/smbrsync-4-go/smbrsync"
 )
 
 

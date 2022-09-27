@@ -37,13 +37,13 @@ func recursiveSync(srcShare *smb2.Share, dstShare *smb2.Share, srcPath string, d
 		panic(err)
 	}
 
-	
+
 	// contents of destination as map of item names
 	tmp, err := dstShare.ReadDir(dstPath)
 	if err != nil {
 		panic(err)
 	}
-	lsd := make(map[string]fs.FileInfo, 0)
+	lsd := make(map[string]fs.FileInfo)
 	for _, item := range tmp {
 		lsd[item.Name()] = item
 	}
