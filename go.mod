@@ -1,4 +1,4 @@
-module github.com/Hoglandets-IT/smbrsync-4-go@module
+module github.com/Hoglandets-IT/smbrsync-4-go
 
 go 1.19
 
