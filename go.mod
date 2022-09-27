@@ -1,4 +1,4 @@
-module hoglandet.se/smbrsync
+module github.com/Hoglandets-IT/smbrsync-4-go/tree/module
 
 go 1.19
 
