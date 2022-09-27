@@ -37,6 +37,7 @@ func recursiveSync(srcShare *smb2.Share, dstShare *smb2.Share, srcPath string, d
 		panic(err)
 	}
 
+	
 	// contents of destination as map of item names
 	tmp, err := dstShare.ReadDir(dstPath)
 	if err != nil {
