@@ -1,6 +1,6 @@
 module github.com/Hoglandets-IT/smbrsync-4-go/smbrsync
 
-go 1.17
+go 1.19
 
 require github.com/hirochachacha/go-smb2 v1.1.0
 
