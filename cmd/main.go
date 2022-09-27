@@ -1,14 +1,12 @@
 package main
 
 import (
-	"crypto/md5"
 	"fmt"
-	"io/fs"
 	"net"
-	"strings"
 	"time"
 
 	"github.com/Hoglandets-IT/smbrsync-4-go/smbrsync"
+	"github.com/hirochachacha/go-smb2"
 )
 
 
@@ -65,7 +63,7 @@ func main() {
 
 	fmt.Println("Servers connected, starting synchronization at ", time.Since(start).Seconds(), " sec after start")
 
-	reco_sync(srcsh, dstsh, sdir, ddir, "")
+	smbrsync.Sync(srcsh, dstsh, sdir, ddir)
 	defer println("Finished processing")
 	end := time.Now()
 	fmt.Println("Total runtime: ", end.Sub(start).Seconds(), " seconds")
