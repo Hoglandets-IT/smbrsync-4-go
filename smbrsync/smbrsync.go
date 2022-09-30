@@ -30,18 +30,17 @@ func fileDiff(fi1 fs.FileInfo, fi2 fs.FileInfo) bool {
 	return fi2 == nil || fi1.ModTime() != fi2.ModTime() || fi1.Size() != fi2.Size()
 }
 
-func recursiveSync(srcShare *smb2.Share, dstShare *smb2.Share, srcPath string, dstPath string) {
+func recursiveSync(srcShare *smb2.Share, dstShare *smb2.Share, srcPath string, dstPath string) error {
 
 	lss, err := srcShare.ReadDir(srcPath)
 	if err != nil {
-		panic(err)
+		return err
 	}
-
 
 	// contents of destination as map of item names
 	tmp, err := dstShare.ReadDir(dstPath)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	lsd := make(map[string]fs.FileInfo)
 	for _, item := range tmp {
@@ -58,7 +57,7 @@ func recursiveSync(srcShare *smb2.Share, dstShare *smb2.Share, srcPath string, d
 				// destination exists but is not a file
 				err := dstShare.RemoveAll(dstItemPath)
 				if err != nil {
-					panic(err)
+					return err
 				}
 				// remove from destination item map for next step of check
 				delete(lsd, item.Name())
@@ -69,7 +68,7 @@ func recursiveSync(srcShare *smb2.Share, dstShare *smb2.Share, srcPath string, d
 				fmt.Println("Files differ ", srcItemPath)
 				srcont, err := srcShare.ReadFile(srcItemPath)
 				if err != nil {
-					panic(err)
+					return err
 				}
 
 				dstShare.WriteFile(dstItemPath, srcont, item.Mode())
@@ -81,18 +80,18 @@ func recursiveSync(srcShare *smb2.Share, dstShare *smb2.Share, srcPath string, d
 				// not found, add directory
 				err := dstShare.Mkdir(dstItemPath, item.Mode())
 				if err != nil {
-					panic(err)
+					return err
 				}
 			} else if !lsd[item.Name()].Mode().IsDir() {
 				// not a directory, make it one
 				err := dstShare.Remove(dstItemPath)
 				if err != nil {
-					panic(err)
+					return err
 				}
 
 				err = dstShare.Mkdir(dstItemPath, item.Mode())
 				if err != nil {
-					panic(err)
+					return err
 				}
 			}
 
@@ -107,14 +106,21 @@ func recursiveSync(srcShare *smb2.Share, dstShare *smb2.Share, srcPath string, d
 		dstItemPath := joinPath(dstPath, item.Name())
 		err := dstShare.RemoveAll(dstItemPath)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
+
+	return nil
 }
 
-func Sync(srcShare *smb2.Share, dstShare *smb2.Share, srcPath string, dstPath string) {
+func Sync(srcShare *smb2.Share, dstShare *smb2.Share, srcPath string, dstPath string) error {
 	srcPath = normPath(srcPath)
 	dstPath = normPath(dstPath)
 
-	recursiveSync(srcShare, dstShare, srcPath, dstPath)
+	err := recursiveSync(srcShare, dstShare, srcPath, dstPath)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
