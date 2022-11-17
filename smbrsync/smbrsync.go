@@ -300,7 +300,7 @@ func (sync *SmbRsync) recursiveSync(subPath string) error {
 	// anything left in the destination item map should be removed
 	// log as deleted
 	for _, item := range lsd {
-		err := sync.dst.Share.RemoveAll(joinPath(sync.dst.BasePath, item.Name()))
+		err := sync.dst.Share.RemoveAll(joinPath(sync.dst.BasePath, subPath, item.Name()))
 		if err != nil {
 			return err
 		}
