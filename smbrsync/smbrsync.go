@@ -312,13 +312,13 @@ func (sync *SmbRsync) recursiveSync(subPath string) error {
 }
 
 // Performs a sync of two folders on 2 shares
-func (sync *SmbRsync) Sync() (SmbRsyncResult, error) {
+func (sync *SmbRsync) Sync() (*SmbRsyncResult, error) {
 
 	// perform sync
 	err := sync.recursiveSync("")
 	if err != nil {
-		return SmbRsyncResult{}, err
+		return &SmbRsyncResult{}, err
 	}
 
-	return sync.res, nil
+	return &sync.res, nil
 }
