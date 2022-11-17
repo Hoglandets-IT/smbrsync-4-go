@@ -198,7 +198,7 @@ func (sync *SmbRsync) recursiveSync(subPath string) error {
 		return err
 	}
 
-	lsd := make(map[string]fs.FileInfo)
+	lsd := map[string]fs.FileInfo{}
 	for _, item := range tmp {
 		lsd[item.Name()] = item
 	}
@@ -217,7 +217,7 @@ func (sync *SmbRsync) recursiveSync(subPath string) error {
 			isFile := found && lsd[item.Name()].Mode().IsRegular()
 
 			// check diff, only checks diff if found
-			diff := found && fileDiff(item, lsd[item.Name()])
+			diff := found && isFile && fileDiff(item, lsd[item.Name()])
 
 			// log as copied file
 			if !found {
