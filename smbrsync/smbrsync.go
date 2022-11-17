@@ -317,7 +317,7 @@ func (sync *SmbRsync) Sync() (*SmbRsyncResult, error) {
 	// perform sync
 	err := sync.recursiveSync("")
 	if err != nil {
-		return &SmbRsyncResult{}, err
+		return nil, err
 	}
 
 	return &sync.res, nil
