@@ -1,7 +1,10 @@
 package smbrsync
 
 import (
+	"io"
 	"io/fs"
+	"os"
+
 	"regexp"
 	"strings"
 
@@ -22,13 +25,10 @@ type SmbRsyncShare struct {
 }
 
 type SmbRsync struct {
-	src *SmbRsyncShare
-
-	dst *SmbRsyncShare
-
+	src     *SmbRsyncShare
+	dst     *SmbRsyncShare
 	filters []*regexp.Regexp
-
-	res SmbRsyncResult
+	res     SmbRsyncResult
 }
 
 func New(src *SmbRsyncShare, dst *SmbRsyncShare, filters []string) (*SmbRsync, error) {
@@ -242,15 +242,34 @@ func (sync *SmbRsync) recursiveSync(subPath string) error {
 			if !found || diff {
 				// destination does not exist or file mismatch
 				// create and/or write source data to destination
-				srcont, err := sync.src.Share.ReadFile(srcItemPath)
+				src, err := sync.src.Share.Open(srcItemPath)
 				if err != nil {
 					return err
+				}
+				defer src.Close()
+
+				dst, err := sync.src.Share.OpenFile(dstItemPath, os.O_CREATE|os.O_TRUNC, item.Mode().Perm())
+				if err != nil {
+					return err
+				}
+				defer dst.Close()
+
+				buf := make([]byte, 1024*1024*2)
+				for {
+					n, err := src.Read(buf)
+					if err != nil && err != io.EOF {
+						return err
+					}
+
+					if err == io.EOF || n == 0 {
+						break
+					}
+
+					if _, err := dst.Write(buf[:n]); err != nil {
+						return err
+					}
 				}
 
-				err = sync.dst.Share.WriteFile(dstItemPath, srcont, item.Mode())
-				if err != nil {
-					return err
-				}
 				err = sync.dst.Share.Chtimes(dstItemPath, item.ModTime(), item.ModTime())
 				if err != nil {
 					return err
