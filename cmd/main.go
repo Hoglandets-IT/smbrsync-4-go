@@ -9,18 +9,17 @@ import (
 	"github.com/hirochachacha/go-smb2"
 )
 
-
 func main() {
 	// Start timer
 	start := time.Now()
 	fmt.Println("Starting sync")
-	src_conn, err1 := net.Dial("tcp", "some-server:445")
+	src_conn, err1 := net.Dial("tcp", "RGB-BOX:445")
 	if err1 != nil {
 		panic(err1)
 	}
 	defer src_conn.Close()
 
-	dst_conn, err2 := net.Dial("tcp", "other-server:445")
+	dst_conn, err2 := net.Dial("tcp", "RGB-BOX:445")
 	if err2 != nil {
 		panic(err2)
 	}
@@ -28,9 +27,9 @@ func main() {
 
 	credentials := &smb2.Dialer{
 		Initiator: &smb2.NTLMInitiator{
-			User:     "username",
-			Password: "password",
-			Domain:   "domain",
+			User:     "",
+			Password: "",
+			Domain:   "",
 		},
 	}
 
@@ -46,25 +45,55 @@ func main() {
 	}
 	defer dst.Logoff()
 
-	srcsh, err := src.Mount("SomeShare$")
+	srcsh, err := src.Mount("src$")
 	if err != nil {
 		panic(err)
 	}
 	defer srcsh.Umount()
 
-	dstsh, err := dst.Mount("OtherShare$")
+	dstsh, err := dst.Mount("dst$")
 	if err != nil {
 		panic(err)
 	}
 	defer dstsh.Umount()
 
-	sdir := "rsync_src"
-	ddir := "rsync_dst"
-
 	fmt.Println("Servers connected, starting synchronization at ", time.Since(start).Seconds(), " sec after start")
 
-	smbrsync.Sync(srcsh, dstsh, sdir, ddir)
+	filters := []string{
+		`whitelist.json`,
+		`^world\\level.dat$`,
+	}
+
+	sync, err := smbrsync.New(
+		&smbrsync.SmbRsyncShare{
+			Share:    srcsh,
+			BasePath: "somedir",
+		},
+
+		&smbrsync.SmbRsyncShare{
+			Share:    dstsh,
+			BasePath: "someotherdir",
+		},
+
+		filters,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	result, err := sync.Sync()
+	if err != nil {
+		panic(err)
+	}
+
 	defer println("Finished processing")
+
 	end := time.Now()
 	fmt.Println("Total runtime: ", end.Sub(start).Seconds(), " seconds")
+
+	//fmt.Println("Skipped: ", result.Skipped)
+	fmt.Println("Excluded: ", result.Excluded)
+	fmt.Println("Copied: ", result.Copied)
+	fmt.Println("Mismatch: ", result.Mismatch)
+	fmt.Println("Deleted: ", result.Deleted)
 }
