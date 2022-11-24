@@ -200,24 +200,28 @@ func (sync *SmbRsync) recursiveSync(subPath string) error {
 
 	lsd := map[string]fs.FileInfo{}
 	for _, item := range tmp {
-		lsd[item.Name()] = item
+		// item name in lowercase to simulate case insensitveness of Windows FS
+		lsd[strings.ToLower(item.Name())] = item
 	}
 
 	for _, item := range lss {
 		srcItemPath := joinPath(sync.src.BasePath, subPath, item.Name())
 		dstItemPath := joinPath(sync.dst.BasePath, subPath, item.Name())
 
+		// item name in lowercase to simulate case insensitveness of Windows FS
+		ciItemName := strings.ToLower(item.Name())
+
 		if item.Mode().IsRegular() {
 			// source is regular file
 
 			// check if exists in destination
-			_, found := lsd[item.Name()]
+			_, found := lsd[ciItemName]
 
 			// check if regular file, only checks if found
-			isFile := found && lsd[item.Name()].Mode().IsRegular()
+			isFile := found && lsd[ciItemName].Mode().IsRegular()
 
 			// check diff, only checks diff if found
-			diff := found && isFile && fileDiff(item, lsd[item.Name()])
+			diff := found && isFile && fileDiff(item, lsd[ciItemName])
 
 			// log as copied file
 			if !found {
@@ -282,7 +286,7 @@ func (sync *SmbRsync) recursiveSync(subPath string) error {
 			}
 		} else if item.Mode().IsDir() {
 			// source is directory
-			if _, found := lsd[item.Name()]; !found {
+			if _, found := lsd[ciItemName]; !found {
 				// not found, add directory, log as copied
 				err := sync.dst.Share.Mkdir(dstItemPath, item.Mode())
 				if err != nil {
@@ -290,7 +294,7 @@ func (sync *SmbRsync) recursiveSync(subPath string) error {
 				}
 
 				sync.logCopied(joinPath(subPath, item.Name()))
-			} else if !lsd[item.Name()].Mode().IsDir() {
+			} else if !lsd[ciItemName].Mode().IsDir() {
 				// not a directory, make it one, log as mismatch
 				err := sync.dst.Share.Remove(dstItemPath)
 				if err != nil {
@@ -313,7 +317,7 @@ func (sync *SmbRsync) recursiveSync(subPath string) error {
 			}
 		}
 		// remove item from destination item map
-		delete(lsd, item.Name())
+		delete(lsd, ciItemName)
 	}
 
 	// anything left in the destination item map should be removed
